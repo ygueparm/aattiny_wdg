@@ -1,0 +1,13 @@
+** Drc report for attiny.kicad_pcb **
+** Created on 2025-10-15T20:09:41+0200 **
+
+** Found 1 DRC violations **
+[lib_footprint_mismatch]: L’empreinte 'PinHeader_1x06_P2.54mm_Vertical' ne correspond pas à la copie en librairie 'Connector_PinHeader_2.54mm'.
+    Forçage local; warning
+    @(143,5000 mm, 51,5000 mm): Empreinte J1
+
+** Found 0 unconnected pads **
+
+** Found 0 Footprint errors **
+
+** End of Report **

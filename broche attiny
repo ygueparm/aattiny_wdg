@@ -1,0 +1,395 @@
+| Arduino Uno | ATtiny85 (broche physique) | Sérigraphie | Fonction |
+| ----------- | -------------------------- | ----------- | -------- |
+| **10**      | 1                          | **P5**      | RESET    |
+| **11**      | 5                          | **P0**      | MOSI     |
+| **12**      | 6                          | **P1**      | MISO     |
+| **13**      | 7                          | **P2**      | SCK      |
+| **5V**      | 8                          | **VCC**     | Alim +5V |
+| **GND**     | 4                          | **GND**     | Masse    |
+
+
+brochage progammer attiny85 : 
+
+[2×3 ISP – vue dessus]
+┌───┬───┐
+│ ● │ ● │  ← 1 = MISO, 2 = VCC (3.3V)
+│ ● │ ● │  ← 3 = SCK,  4 = MOSI
+│ ● │ ● │  ← 5 = RST,  6 = GND
+└───┴───┘
+
+DTR ───┬────||───── GPIO0
+       │    100nF
+       │
+       └────||───── EN (ou RST)
+            100nF
+
+ESP32 comme Programmateur AVR-ISP
+1. Câblage Direct
+ESP32	ATtiny85
+GPIO14 (CLK)	PB2 (SCK - Pin 7)
+GPIO12 (MOSI)	PB0 (MOSI - Pin 5)
+GPIO13 (MISO)	PB1 (MISO - Pin 6)
+GPIO15 (RESET)	RESET (Pin 1)
+3.3V	VCC (Pin 8)
+GND	GND (Pin 4)
+
+
+ESP32	ATtiny85
+GPIO15	RESET (Pin 1)
+GPIO23	MOSI (Pin 5)
+GPIO19	MISO (Pin 6)
+GPIO18	SCK (Pin 7)
+3.3V	VCC (Pin 8)
+GND	GND (Pin 4)
+
+#include <SPI.h>
+
+// Broches de configuration
+#define RESET_PIN    15
+#define LED_HB       2
+#define LED_ERR      4
+#define LED_PMODE    5
+
+// Variables d'état
+bool error = 0;
+bool pmode = 0;
+byte hbval = 128;
+int8_t hbdelta = 8;
+unsigned long previousMillis = 0;
+const long interval = 100;
+
+// Buffer pour la programmation
+#define buffsize 256
+uint8_t buff[buffsize];
+int address = 0;
+
+void setup() {
+  Serial.begin(115200); // IMPORTANT: 115200 bauds
+  
+  // Configuration des broches
+  pinMode(LED_HB, OUTPUT);
+  pinMode(LED_ERR, OUTPUT);
+  pinMode(LED_PMODE, OUTPUT);
+  pinMode(RESET_PIN, OUTPUT);
+  
+  digitalWrite(RESET_PIN, HIGH);
+  SPI.begin();
+  
+  // Sign-on message
+  Serial.println("ESP32 ArduinoISP Ready");
+  heartbeat();
+}
+
+void loop() {
+  // Gestion de la LED heartbeat
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+    heartbeat();
+  }
+
+  // Traitement des commandes série
+  if (Serial.available()) {
+    avrisp();
+  }
+}
+
+void heartbeat() {
+  if (hbval > 192) hbdelta = -hbdelta;
+  if (hbval < 32) hbdelta = -hbdelta;
+  hbval += hbdelta;
+  analogWrite(LED_HB, hbval);
+  
+  digitalWrite(LED_ERR, error);
+  digitalWrite(LED_PMODE, pmode);
+}
+
+uint8_t getch() {
+  while (!Serial.available());
+  return Serial.read();
+}
+
+void fill(int n) {
+  for (int x = 0; x < n; x++) {
+    buff[x] = getch();
+  }
+}
+
+#define PTIME 30
+void pulse(int pin, int times) {
+  do {
+    digitalWrite(pin, HIGH);
+    delay(PTIME);
+    digitalWrite(pin, LOW);
+    delay(PTIME);
+  } while (times--);
+}
+
+void spi_init() {
+  SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
+}
+
+void spi_wait() {
+  delayMicroseconds(10);
+}
+
+uint8_t spi_send(uint8_t b) {
+  uint8_t reply = SPI.transfer(b);
+  spi_wait();
+  return reply;
+}
+
+uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
+  spi_init();
+  spi_send(a);
+  spi_send(b);
+  spi_send(c);
+  return spi_send(d);
+}
+
+void empty_reply() {
+  if (getch() == CRC_EOP) {
+    Serial.write((char)STK_INSYNC);
+    Serial.write((char)STK_OK);
+  } else {
+    error++;
+    Serial.write((char)STK_NOSYNC);
+  }
+}
+
+void breply(uint8_t b) {
+  if (getch() == CRC_EOP) {
+    Serial.write((char)STK_INSYNC);
+    Serial.write((char)b);
+    Serial.write((char)STK_OK);
+  } else {
+    error++;
+    Serial.write((char)STK_NOSYNC);
+  }
+}
+
+void get_version(uint8_t c) {
+  switch (c) {
+    case 0x80: breply(HWVER); break;
+    case 0x81: breply(SWMAJ); break;
+    case 0x82: breply(SWMIN); break;
+    case 0x93: breply('S'); break; // serial programmer
+    default: breply(0);
+  }
+}
+
+void set_parameters() {
+  // ignore parameters
+  for (uint8_t i = 0; i < 20; i++) {
+    getch();
+  }
+  empty_reply();
+}
+
+void start_pmode() {
+  spi_init();
+  // reset target
+  digitalWrite(RESET_PIN, HIGH);
+  delay(20);
+  digitalWrite(RESET_PIN, LOW);
+  delay(100);
+  digitalWrite(RESET_PIN, HIGH);
+  delay(20);
+  
+  // synchronisation
+  spi_transaction(0xAC, 0x53, 0x00, 0x00);
+  pmode = 1;
+}
+
+void end_pmode() {
+  spi_init();
+  digitalWrite(RESET_PIN, HIGH);
+  pmode = 0;
+}
+
+void universal() {
+  uint8_t ch;
+  
+  fill(4);
+  ch = spi_transaction(buff[0], buff[1], buff[2], buff[3]);
+  breply(ch);
+}
+
+void flash(uint8_t hilo, int addr, uint8_t data) {
+  spi_transaction(0x40 + 8 * hilo,
+                  addr >> 8 & 0xFF,
+                  addr & 0xFF,
+                  data);
+}
+
+void commit(int addr) {
+  if (addr == 0) {
+    spi_transaction(0x4C, (addr >> 8) & 0xFF, addr & 0xFF, 0);
+  } else {
+    // No page buffer in tiny85, so commit every word immediately
+  }
+}
+
+#define STK_OK              0x10
+#define STK_FAILED          0x11
+#define STK_UNKNOWN         0x12
+#define STK_INSYNC          0x14
+#define STK_NOSYNC          0x15
+#define CRC_EOP             0x20
+#define STK_GET_SYNC        0x30
+#define STK_GET_SIGN_ON     0x28
+
+void get_signature() {
+  uint8_t high = spi_transaction(0x30, 0x00, 0x00, 0x00);
+  uint8_t middle = spi_transaction(0x30, 0x00, 0x01, 0x00);
+  uint8_t low = spi_transaction(0x30, 0x00, 0x02, 0x00);
+  
+  Serial.write((char)STK_INSYNC);
+  Serial.write((char)high);
+  Serial.write((char)middle);
+  Serial.write((char)low);
+  Serial.write((char)STK_OK);
+}
+
+void read_flash(int length) {
+  Serial.write((char)STK_INSYNC);
+  
+  for (int x = 0; x < length; x += 2) {
+    uint8_t low = spi_transaction(0x20, (address + x) >> 8, (address + x) & 0xFF, 0);
+    uint8_t high = spi_transaction(0x28, (address + x) >> 8, (address + x) & 0xFF, 0);
+    Serial.write((char)low);
+    Serial.write((char)high);
+  }
+  
+  Serial.write((char)STK_OK);
+}
+
+void read_eeprom(int length) {
+  Serial.write((char)STK_INSYNC);
+  
+  for (int x = 0; x < length; x++) {
+    uint8_t ee = spi_transaction(0xA0, (address + x) >> 8, (address + x) & 0xFF, 0);
+    Serial.write((char)ee);
+  }
+  
+  Serial.write((char)STK_OK);
+}
+
+void write_flash() {
+  fill(2); // nombre d'octets (little endian)
+  int length = buff[0] | (buff[1] << 8);
+  
+  if (length > buffsize) {
+    error++;
+    Serial.write((char)STK_FAILED);
+    return;
+  }
+  
+  fill(length);
+  Serial.write((char)STK_INSYNC);
+  
+  for (int x = 0; x < length; x += 2) {
+    uint8_t low = buff[x];
+    uint8_t high = buff[x + 1];
+    
+    flash(LOW, address + x, low);
+    flash(HIGH, address + x, high);
+    commit(address + x);
+  }
+  
+  Serial.write((char)STK_OK);
+}
+
+void write_eeprom() {
+  fill(2); // nombre d'octets (little endian)
+  int length = buff[0] | (buff[1] << 8);
+  
+  fill(length);
+  Serial.write((char)STK_INSYNC);
+  
+  for (int x = 0; x < length; x++) {
+    spi_transaction(0xC0, (address + x) >> 8, (address + x) & 0xFF, buff[x]);
+    delay(45);
+  }
+  
+  Serial.write((char)STK_OK);
+}
+
+void avrisp() {
+  uint8_t data = getch();
+  uint8_t ch = getch();
+  
+  switch (ch) {
+    case STK_GET_SYNC:
+      error = 0;
+      empty_reply();
+      break;
+      
+    case STK_GET_SIGN_ON:
+      if (data == CRC_EOP) {
+        Serial.write((char)STK_INSYNC);
+        Serial.print("ESP32 ArduinoISP");
+        Serial.write((char)STK_OK);
+      }
+      break;
+      
+    case STK_GET_PARAMETER:
+      get_version(data);
+      break;
+      
+    case STK_SET_DEVICE:
+      set_parameters();
+      break;
+      
+    case STK_ENTER_PROGMODE:
+      start_pmode();
+      empty_reply();
+      break;
+      
+    case STK_LEAVE_PROGMODE:
+      end_pmode();
+      empty_reply();
+      break;
+      
+    case STK_LOAD_ADDRESS:
+      address = getch();
+      address += (getch() << 8);
+      empty_reply();
+      break;
+      
+    case STK_UNIVERSAL:
+      universal();
+      break;
+      
+    case STK_PROG_FLASH:
+      write_flash();
+      break;
+      
+    case STK_PROG_DATA:
+      write_eeprom();
+      break;
+      
+    case STK_READ_FLASH:
+      read_flash(data);
+      break;
+      
+    case STK_READ_EEPROM:
+      read_eeprom(data);
+      break;
+      
+    case STK_READ_SIGN:
+      get_signature();
+      break;
+      
+    default:
+      switch (ch) {
+        case 0: break;
+        case CRC_EOP:
+          Serial.write((char)STK_NOSYNC);
+          break;
+        default:
+          Serial.write((char)STK_UNKNOWN);
+          break;
+      }
+  }
+}
