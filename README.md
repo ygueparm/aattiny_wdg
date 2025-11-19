@@ -8,7 +8,7 @@ le code est pour l'IDE arduino-ide 2
 le code a inclure dans votre projet esp32 :
 
 
-
+```cpp
 #define WATCHDOG_EXT         25 // io esp322
 //config watchdog
 extern bool watchdogState ;
@@ -30,6 +30,7 @@ void loop() {
   ....
   
   }
+  ```
   
   # programmation ISP arduino
   
@@ -52,3 +53,4 @@ void loop() {
   
   * tool > burn bootloader
   * ca devrait fonctionner pour le projet
+  
