@@ -50,7 +50,18 @@ void loop() {
   *
   
   ### première utilisation attiny85
-  
+  * ne souder que le attiny85 et les pin de programmation
   * tool > burn bootloader
   * ca devrait fonctionner pour le projet
   
+
+# production jlcpcb
+
+aller dans le dossier : 
+    aattiny_wdg/attiny/production/
+    
+    pour le pcb seul prendre attiny.zip et faire un devis directement sur le site de jlpcb ou pcbway vous recevrez vos pcb a souder chez vous
+    
+    les autre fichiers sont utiles si vous voulez produire le pcb complet ave composant
+    
+    # 
