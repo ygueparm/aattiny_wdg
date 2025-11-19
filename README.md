@@ -1,4 +1,4 @@
-# Another Watchdog for ESP32
+# Another ATtiny85 Watchdog for ESP32
 
 ![Animation du projet](animation.gif)
 
