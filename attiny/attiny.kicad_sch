@@ -3172,7 +3172,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "R"
+		(property "Value" "12kΩ ±1% 250mW 1206"
 			(at 156.21 139.6999 0)
 			(effects
 				(font
@@ -3444,7 +3444,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "R"
+		(property "Value" "12kΩ ±1% 250mW 1206"
 			(at 151.13 139.6999 0)
 			(effects
 				(font
