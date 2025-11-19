@@ -75,6 +75,7 @@ Dans *Tools* :
 2. *Tools > Burn Bootloader* (installe les fuses corrects).
 3. Votre ATtiny85 est maintenant prêt pour le projet.
 
+ * fichier .ino >   aattiny_wdg/attiny_watchdog/attiny_watchdog.ino
 ---
 
 # 🏭 Production JLCPCB
