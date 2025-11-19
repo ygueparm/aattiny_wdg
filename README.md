@@ -6,6 +6,10 @@ Ce projet fournit un **watchdog externe** pour ESP32, compatible avec **Arduino 
 
 ---
 
+
+![mise en situation](situation.png)
+
+
 ## 🔧 Code à inclure dans votre projet ESP32
 
 ```cpp
