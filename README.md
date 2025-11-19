@@ -42,7 +42,7 @@ void loop() {
 
 # 🔌 Programmation ISP de l'ATtiny85
 
-Pour programmer l'ATtiny85, vous devez utiliser **Arduino comme ISP**.
+Pour programmer l'ATtiny85, vous devez utiliser **Arduino comme ISP**. NE SURTOUT PAS CONNECTEZ la carte a lesp32 pendant la programmation
 
 ## 1. Charger ArduinoISP
 
@@ -80,6 +80,7 @@ Dans *Tools* :
 3. Votre ATtiny85 est maintenant prêt pour le projet.
 
  * fichier .ino >   aattiny_wdg/attiny_watchdog/attiny_watchdog.ino
+ * vous pouvez soudez le reste des composants ! et le mettre en place
 ---
 
 # 🏭 Production JLCPCB
