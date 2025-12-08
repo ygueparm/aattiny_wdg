@@ -20,7 +20,13 @@ extern bool watchdogState;
 extern unsigned long previousMillisWD;
 extern const long intervalWD;
 
+
+
 void setup() {
+unsigned long previousMillisWD = 0; 
+const long intervalWD = 200;  //clignotement 500 >1.6hz
+bool watchdogState = true;
+
   // ... votre configuration
 }
 
