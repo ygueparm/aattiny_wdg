@@ -25,7 +25,7 @@ void setup() {
 }
 
 void loop() {
-  // Watchdog externe créant un clignotement < 1.6 Hz
+  // Watchdog externe créant un clignotement < 1.6 Hz sur la broche IO 25
   unsigned long currentMillisWD = millis();
 
   if (currentMillisWD - previousMillisWD >= intervalWD) {
@@ -42,7 +42,7 @@ void loop() {
 
 # 🔌 Programmation ISP de l'ATtiny85
 
-Pour programmer l'ATtiny85, vous devez utiliser **Arduino comme ISP**. NE SURTOUT PAS CONNECTEZ la carte a lesp32 pendant la programmation
+Pour programmer l'ATtiny85, vous devez utiliser **Arduino comme ISP**. NE SURTOUT PAS CONNECTEZ la carte a l'esp32 pendant la programmation
 
 ## 1. Charger ArduinoISP
 
@@ -78,6 +78,7 @@ Dans *Tools* :
 1. Ne soudez que l'ATtiny85 et les pins de programmation.
 2. *Tools > Burn Bootloader* (installe les fuses corrects).
 3. Votre ATtiny85 est maintenant prêt pour le projet.
+4. Selectionner utiliser arduino as programmer
 
  * fichier .ino >   aattiny_wdg/attiny_watchdog/attiny_watchdog.ino
  * vous pouvez soudez le reste des composants ! et le mettre en place
