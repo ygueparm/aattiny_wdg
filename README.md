@@ -45,6 +45,9 @@ void loop() {
 # 🔌 Programmation ISP de l'ATtiny85
 
 Pour programmer l'ATtiny85, vous devez utiliser **Arduino comme ISP**. NE SURTOUT PAS CONNECTEZ la carte a lesp32 pendant la programmation
+
+brochage pour utiliser larduino uno comme programateur : 
+
 '''
 | Arduino Uno | ATtiny85 (broche physique) | Sérigraphie | Fonction |
 | ----------- | -------------------------- | ----------- | -------- |
